@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:praktikum_pemrograman_mobile_quizy_pop/screens/subject_screen.dart';
-import '../widgets/custom_button.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -17,9 +15,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Fade in otomatis saat build
     Future.delayed(const Duration(milliseconds: 200), () {
-      setState(() => _visible = true);
+      if (mounted) setState(() => _visible = true);
     });
   }
 
@@ -31,25 +28,34 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   void _startQuiz() {
     final name = _nameController.text.trim();
+
     if (name.isEmpty) {
       _showSnack('Please enter your name!', const Color(0xFFFF69B4));
       return;
     }
-    _showSnack('Welcome, $name!', const Color(0xFFFF1493));
+
+    _showSnack('Welcome, $name!', const Color(0xFFFF0088));
+
+    Future.delayed(const Duration(milliseconds: 600), () {});
   }
 
   void _showSnack(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: color,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          duration: const Duration(seconds: 2),
         ),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-    );
+      );
   }
 
   @override
@@ -58,138 +64,182 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     return Scaffold(
       body: Container(
+        width: size.width,
+        height: size.height,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFFF69B4), Color(0xFFFF1493)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFFEEEE),
+              Color(0xFFFFEFD2),
+              Color(0xFFF9CDF7),
+              Color(0xFFFFAAE7),
+            ],
           ),
         ),
         child: SafeArea(
           child: AnimatedOpacity(
             opacity: _visible ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 1000),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(flex: 2),
-
-                  Image.asset(
-                    'assets/images/logo.png',
-                    height: size.height * 0.22,
-                    fit: BoxFit.contain,
-                  ),
-
-                  SizedBox(height: size.height * 0.04),
-
-                  // Welcome Card
-                  Material(
-                    elevation: 10,
-                    borderRadius: BorderRadius.circular(30),
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 30, vertical: 35),
-                      child: Column(
-                        children: [
-                          Text.rich(
-                            TextSpan(
-                              style: GoogleFonts.poppins(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w700,
-                                height: 1.2,
-                              ),
-                              children: const [
-                                TextSpan(
-                                  text: 'Welcome to\n',
-                                  style: TextStyle(color: Colors.black),
-                                ),
-                                TextSpan(
-                                  text: 'QuizzyPop ',
-                                  style: TextStyle(
-                                    color: Color(0xFFFF1493),
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'Academy!',
-                                  style: TextStyle(color: Colors.black),
-                                ),
-                              ],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 15),
-                          Text(
-                            'Test Your Knowledge & Shine!',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: size.height * 0.06),
-
-                  // Input
-                  TextField(
-                    controller: _nameController,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Enter Your Name',
-                      hintStyle: GoogleFonts.poppins(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.25),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none,
-                      ),
-                        prefixIcon: Padding(
-                          padding: const EdgeInsets.only(left: 25, right: 10),
-                          child: const Icon(Icons.person_outline, color: Colors.white, size: 28),
-                        ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          vertical: 20, horizontal: 30),
-                    ),
-                  ),
-
-                  SizedBox(height: size.height * 0.02),
-
-                  // Button
-                  CustomButton(
-                    text: 'START QUIZ',
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SubjectScreen(),
-                          ),
-                          );
-                          },
-                          backgroundColor: Colors.white,
-                          textColor: const Color(0xFFFF1493),
-                          ),
-                  const Spacer(flex: 2),
-                ],
+            child: Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset('assets/images/logo.png', width: size.width),
+                    SizedBox(height: size.height * 0.01),
+                    _buildWelcomeCard(),
+                    SizedBox(height: size.height * 0.06),
+                    _buildNameInput(),
+                    SizedBox(height: size.height * 0.03),
+                    _buildStartButton(),
+                    SizedBox(height: size.height * 0.05),
+                    _buildBottomIndicator(),
+                  ],
+                ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(40),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.20),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text.rich(
+            TextSpan(
+              children: const [
+                TextSpan(
+                  text: 'Welcome to ',
+                  style: TextStyle(
+                    color: Color(0xFF191919),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                TextSpan(
+                  text: 'QuizzyPop',
+                  style: TextStyle(
+                    color: Color(0xFFFF0088),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                TextSpan(
+                  text: ' Academy!',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            style: const TextStyle(fontSize: 28, height: 1.1),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 15),
+          const Text(
+            'Test Your Knowledge & Shine!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              color: Color(0xFFA6A6A6),
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.72,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNameInput() {
+    return Container(
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.60),
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: const Color(0xFFFF0088)),
+      ),
+      child: TextField(
+        controller: _nameController,
+        textAlign: TextAlign.left,
+        style: const TextStyle(
+          fontSize: 20,
+          color: Color(0xFFFF0088),
+          fontWeight: FontWeight.w500,
+          letterSpacing: -0.8,
+        ),
+        decoration: InputDecoration(
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 30, right: 25),
+            child: const Icon(Icons.person, color: Color(0xFFFF0088), size: 20),
+          ),
+          hintText: 'Enter Your Name',
+          hintStyle: TextStyle(
+            color: const Color(0xFFFF0088).withValues(alpha: 0.7),
+            fontWeight: FontWeight.w500,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStartButton() {
+    return GestureDetector(
+      onTap: _startQuiz,
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF0088),
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: Colors.white),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'Start Quiz',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            letterSpacing: -0.8,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomIndicator() {
+    return Container(
+      width: 135,
+      height: 5,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(100),
       ),
     );
   }
