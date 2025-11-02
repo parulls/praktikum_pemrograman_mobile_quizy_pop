@@ -37,12 +37,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     _showSnack('Welcome, $name!', const Color(0xFFFF0088));
 
     Future.delayed(const Duration(milliseconds: 600), () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const SubjectScreen(),
-        ),
-      );
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SubjectScreen(userName: name),
+          ),
+        );
+      }
     });
   }
 
