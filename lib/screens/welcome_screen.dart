@@ -36,7 +36,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     _showSnack('Welcome, $name!', const Color(0xFFFF0088));
 
-    Future.delayed(const Duration(milliseconds: 600), () {});
+    Future.delayed(const Duration(milliseconds: 600), () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const SubjectScreen(),
+        ),
+      );
+    });
   }
 
   void _showSnack(String message, Color color) {
@@ -175,38 +182,48 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Widget _buildNameInput() {
-    return Container(
-      height: 60,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.60),
-        borderRadius: BorderRadius.circular(50),
-        border: Border.all(color: const Color(0xFFFF0088)),
-      ),
-      child: TextField(
-        controller: _nameController,
-        textAlign: TextAlign.left,
-        style: const TextStyle(
-          fontSize: 20,
-          color: Color(0xFFFF0088),
-          fontWeight: FontWeight.w500,
-          letterSpacing: -0.8,
-        ),
-        decoration: InputDecoration(
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 30, right: 25),
-            child: const Icon(Icons.person, color: Color(0xFFFF0088), size: 20),
-          ),
-          hintText: 'Enter Your Name',
-          hintStyle: TextStyle(
-            color: const Color(0xFFFF0088).withValues(alpha: 0.7),
+  return Container(
+    height: 60,
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.60),
+      borderRadius: BorderRadius.circular(50),
+      border: Border.all(color: const Color(0xFFFF0088)),
+    ),
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        TextField(
+          controller: _nameController,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 20,
+            color: Color(0xFFFF0088),
             fontWeight: FontWeight.w500,
+            letterSpacing: -0.8,
           ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+          decoration: InputDecoration(
+            hintText: 'Enter Your Name',
+            hintStyle: TextStyle(
+              color: const Color(0xFFFF0088).withValues(alpha: 0.7),
+              fontWeight: FontWeight.w500,
+            ),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 15),
+          ),
         ),
-      ),
-    );
-  }
+
+        const Positioned(
+          left: 25,
+          child: Icon(
+            Icons.person,
+            color: Color(0xFFFF0088),
+            size: 22,
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildStartButton() {
     return GestureDetector(
