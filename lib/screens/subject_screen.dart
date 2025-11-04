@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:praktikum_pemrograman_mobile_quizy_pop/screens/question_screen.dart';
 
 class SubjectScreen extends StatefulWidget {
   final String userName;
@@ -14,26 +15,10 @@ class _SubjectScreenState extends State<SubjectScreen> {
 
   // Data untuk subjects
   final List<Map<String, dynamic>> _subjects = [
-    {
-      'name': 'Science',
-      'color': Color(0xFFFF93C7),
-      'icon': Icons.science_outlined,
-    },
-    {
-      'name': 'History',
-      'color': Color(0xFFF293FF),
-      'icon': Icons.history_edu_outlined,
-    },
-    {
-      'name': 'Geography',
-      'color': Color(0xFF93A1FF),
-      'icon': Icons.public_outlined,
-    },
-    {
-      'name': 'Sports',
-      'color': Color(0xFF93FFAE),
-      'icon': Icons.sports_soccer_outlined,
-    },
+    {'name': 'Science', 'color': Color(0xFFFF93C7), 'icon': Icons.science_outlined},
+    {'name': 'History', 'color': Color(0xFFF293FF), 'icon': Icons.history_edu_outlined},
+    {'name': 'Geography', 'color': Color(0xFF93A1FF), 'icon': Icons.public_outlined},
+    {'name': 'Sports', 'color': Color(0xFF93FFAE), 'icon': Icons.sports_soccer_outlined},
   ];
 
   @override
@@ -45,14 +30,13 @@ class _SubjectScreenState extends State<SubjectScreen> {
   }
 
   void _selectSubject(String subject) {
-    // TODO: Navigate to quiz screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Starting $subject quiz...'),
-        backgroundColor: const Color(0xFFFF0088),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        duration: const Duration(seconds: 2),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuestionScreen(
+          userName: widget.userName,
+          subject: subject,
+        ),
       ),
     );
   }
