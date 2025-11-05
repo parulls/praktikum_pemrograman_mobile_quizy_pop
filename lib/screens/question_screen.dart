@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:praktikum_pemrograman_mobile_quizy_pop/models/question_model.dart';
 import 'package:praktikum_pemrograman_mobile_quizy_pop/widgets/answer_option_widget.dart';
+import 'package:praktikum_pemrograman_mobile_quizy_pop/widgets/quiz_header_widget.dart';
 
 class QuestionScreen extends StatefulWidget {
   final String subject;
@@ -20,14 +22,62 @@ class _QuestionScreenState extends State<QuestionScreen> {
   late List<Question> _questions;
   int _currentQuestionIndex = 0;
   int _score = 0;
+  int _correctAnswers = 0;
+  int _wrongAnswers = 0;
   int? _selectedAnswerIndex;
   bool _hasAnswered = false;
   final List<String> _optionLabels = ['A', 'B', 'C', 'D'];
+
+  // Timer variables
+  Timer? _timer;
+  int _remainingSeconds = 60;
 
   @override
   void initState() {
     super.initState();
     _questions = QuizData.getQuestions(widget.subject);
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _remainingSeconds = 60;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        if (_remainingSeconds > 0) {
+          _remainingSeconds--;
+        } else {
+          // Time's up - auto move to next question
+          _timeUp();
+        }
+      });
+    });
+  }
+
+  void _timeUp() {
+    if (_hasAnswered) return;
+
+    setState(() {
+      _hasAnswered = true;
+      _wrongAnswers++;
+      // No score added for timeout
+    });
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _moveToNextQuestion();
+    });
   }
 
   void _selectAnswer(int index) {
@@ -46,28 +96,36 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
     setState(() {
       _hasAnswered = true;
-      if (_selectedAnswerIndex == _questions[_currentQuestionIndex].correctAnswerIndex) {
+      if (_selectedAnswerIndex ==
+          _questions[_currentQuestionIndex].correctAnswerIndex) {
         _score += 10;
+        _correctAnswers++;
+      } else {
+        _wrongAnswers++;
       }
     });
 
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-
-      if (_currentQuestionIndex < _questions.length - 1) {
-        setState(() {
-          _currentQuestionIndex++;
-          _selectedAnswerIndex = null;
-          _hasAnswered = false;
-        });
-      } else {
-        _navigateToResult();
-      }
+      _moveToNextQuestion();
     });
   }
 
+  void _moveToNextQuestion() {
+    if (_currentQuestionIndex < _questions.length - 1) {
+      setState(() {
+        _currentQuestionIndex++;
+        _selectedAnswerIndex = null;
+        _hasAnswered = false;
+      });
+      _startTimer();
+    } else {
+      _navigateToResult();
+    }
+  }
+
   void _navigateToResult() {
-      //TODO: implement result screen
+    //TODO : Implement result screen navigation
   }
 
   void _showSnackBar(String message) {
@@ -106,6 +164,13 @@ class _QuestionScreenState extends State<QuestionScreen> {
         child: SafeArea(
           child: Column(
             children: [
+              QuizHeaderWidget(
+                subject: widget.subject,
+                currentQuestion: _currentQuestionIndex + 1,
+                totalQuestions: _questions.length,
+                remainingSeconds: _remainingSeconds,
+                onBack: () => Navigator.pop(context),
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
@@ -153,7 +218,9 @@ class _QuestionScreenState extends State<QuestionScreen> {
             height: 40,
             decoration: ShapeDecoration(
               color: const Color(0xFF9B34D6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(5),
+              ),
             ),
             alignment: Alignment.center,
             child: Text(
@@ -185,32 +252,31 @@ class _QuestionScreenState extends State<QuestionScreen> {
     return Container(
       constraints: const BoxConstraints(maxWidth: 400),
       child: Column(
-        children: List.generate(
-          question.options.length,
-          (index) {
-            bool? isCorrect;
-            if (_hasAnswered) {
-              // Setelah dijawab, tampilkan status benar/salah untuk semua opsi
-              isCorrect = index == question.correctAnswerIndex;
-            }
-            
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: AnswerOptionWidget(
-                label: _optionLabels[index],
-                text: question.options[index],
-                isSelected: _selectedAnswerIndex == index,
-                isCorrect: isCorrect,
-                onTap: () => _selectAnswer(index),
-              ),
-            );
-          },
-        ),
+        children: List.generate(question.options.length, (index) {
+          bool? isCorrect;
+          if (_hasAnswered) {
+            // Setelah dijawab, tampilkan status benar/salah untuk semua opsi
+            isCorrect = index == question.correctAnswerIndex;
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: AnswerOptionWidget(
+              label: _optionLabels[index],
+              text: question.options[index],
+              isSelected: _selectedAnswerIndex == index,
+              isCorrect: isCorrect,
+              onTap: () => _selectAnswer(index),
+            ),
+          );
+        }),
       ),
     );
   }
 
   Widget _buildNextButton() {
+    final isLastQuestion = _currentQuestionIndex == _questions.length - 1;
+
     return GestureDetector(
       onTap: _nextQuestion,
       child: Container(
@@ -224,17 +290,21 @@ class _QuestionScreenState extends State<QuestionScreen> {
         alignment: Alignment.center,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Text(
-              'NEXT QUESTION',
-              style: TextStyle(
+              isLastQuestion ? 'SEE RESULT' : 'NEXT QUESTION',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(width: 10),
-            Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Icon(
+              isLastQuestion ? Icons.emoji_events : Icons.arrow_forward,
+              color: Colors.white,
+              size: 20,
+            ),
           ],
         ),
       ),
