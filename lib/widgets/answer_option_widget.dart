@@ -23,23 +23,19 @@ class AnswerOptionWidget extends StatelessWidget {
     Color labelBgColor = const Color(0x3FFFAAE7);
     Color textColor = Colors.black;
 
-    // Setelah dijawab (isCorrect sudah diset)
     if (isCorrect != null) {
       if (isCorrect!) {
-        // Jawaban benar - selalu hijau
         backgroundColor = const Color(0xFF93FFAE);
         borderColor = const Color(0xFF2ECC71);
         labelBgColor = Colors.white;
         textColor = Colors.white;
       } else if (isSelected) {
-        // Jawaban yang dipilih tapi salah - merah
         backgroundColor = const Color(0xFFFF93C7);
         borderColor = const Color(0xFFE74C3C);
         labelBgColor = Colors.white;
         textColor = Colors.white;
       }
     } else if (isSelected) {
-      // Sedang dipilih tapi belum submit
       backgroundColor = const Color(0xFFFF0088).withValues(alpha: 0.1);
       borderColor = const Color(0xFFFF0088);
       labelBgColor = const Color(0xFFFF0088).withValues(alpha: 0.3);

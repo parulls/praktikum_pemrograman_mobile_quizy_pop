@@ -64,7 +64,7 @@ class QuizHeaderWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-
+          
           // Progress bar di bawah header
           Stack(
             children: [
