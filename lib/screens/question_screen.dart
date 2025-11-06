@@ -1,177 +1,174 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:praktikum_pemrograman_mobile_quizy_pop/models/question_model.dart';
-import 'package:praktikum_pemrograman_mobile_quizy_pop/widgets/answer_option_widget.dart';
-import 'package:praktikum_pemrograman_mobile_quizy_pop/widgets/quiz_header_widget.dart';
-import 'package:praktikum_pemrograman_mobile_quizy_pop/screens/result_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/quiz_provider.dart';
+import '../widgets/answer_option_widget.dart';
+import '../widgets/quiz_header_widget.dart';
+import 'result_screen.dart';
 
 class QuestionScreen extends StatefulWidget {
-  final String subject;
-  final String userName;
-
-  const QuestionScreen({
-    super.key,
-    required this.subject,
-    required this.userName,
-  });
+  const QuestionScreen({super.key});
 
   @override
   State<QuestionScreen> createState() => _QuestionScreenState();
 }
 
-class _QuestionScreenState extends State<QuestionScreen> with AutomaticKeepAliveClientMixin {
-  late List<Question> _questions;
-  int _currentQuestionIndex = 0;
-  int _score = 0;
-  int _correctAnswers = 0;
-  int _wrongAnswers = 0;
-  
-  // Menyimpan jawaban user untuk setiap pertanyaan
-  late List<int?> _userAnswers;
-  late List<bool> _hasAnsweredList;
-  
-  bool _hasAnswered = false;
-  int? _selectedAnswerIndex;
+class _QuestionScreenState extends State<QuestionScreen> {
   final List<String> _optionLabels = ['A', 'B', 'C', 'D'];
-  
-  // Timer variables
-  Timer? _timer;
-  int _remainingSeconds = 60;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _questions = QuizData.getQuestions(widget.subject);
-    _userAnswers = List.filled(_questions.length, null);
-    _hasAnsweredList = List.filled(_questions.length, false);
-    _startTimer();
-  }
 
   @override
   void dispose() {
-    _timer?.cancel();
     super.dispose();
   }
 
-  void _startTimer() {
-    _remainingSeconds = 60;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
+  Future<bool> _onWillPop(QuizProvider quizProvider) async {
+    if (quizProvider.currentQuestionIndex == 0) {
+      final shouldExit = await showDialog<bool>(
+        context: context,
+        builder: (context) => _buildExitDialog(),
+      );
+
+      if (shouldExit == true) {
+        Navigator.of(context).pop();
+      }
+      return false;
+    } else {
+      quizProvider.moveToPreviousQuestion();
+      return false;
+    }
+  }
+
+  Widget _buildExitDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AlertDialog(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      title: Text(
+        'Exit Quiz?',
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyLarge!.color,
+        ),
+      ),
+      content: Text(
+        'Are you sure you want to exit? Your progress will be lost.',
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium!.color,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.red,
+          ),
+          child: const Text('Exit'),
+        ),
+      ],
+    );
+  }
+
+  void _handleNextQuestion(QuizProvider quizProvider) {
+    if (!quizProvider.hasAnswered) {
+      if (quizProvider.selectedAnswerIndex == null) {
+        _showSnackBar('Please select an answer!');
         return;
       }
 
-      setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-        } else {
-          _timeUp();
-        }
-      });
-    });
-  }
-
-  void _timeUp() {
-    if (_hasAnswered) return;
-
-    setState(() {
-      _hasAnswered = true;
-      _hasAnsweredList[_currentQuestionIndex] = true;
-      _wrongAnswers++;
-    });
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      _moveToNextQuestion();
-    });
-  }
-
-  void _selectAnswer(int index) {
-    if (_hasAnswered) return;
-
-    setState(() {
-      _selectedAnswerIndex = index;
-    });
-  }
-
-  void _nextQuestion() {
-    if (_selectedAnswerIndex == null) {
-      _showSnackBar('Please select an answer!');
-      return;
+      quizProvider.submitAnswer();
     }
 
-    setState(() {
-      _hasAnswered = true;
-      _hasAnsweredList[_currentQuestionIndex] = true;
-      _userAnswers[_currentQuestionIndex] = _selectedAnswerIndex;
-      
-      if (_selectedAnswerIndex == _questions[_currentQuestionIndex].correctAnswerIndex) {
-        _score += 10;
-        _correctAnswers++;
-      } else {
-        _wrongAnswers++;
-      }
-    });
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      _moveToNextQuestion();
-    });
-  }
-
-  void _moveToNextQuestion() {
-    if (_currentQuestionIndex < _questions.length - 1) {
-      setState(() {
-        _currentQuestionIndex++;
-        _selectedAnswerIndex = _userAnswers[_currentQuestionIndex];
-        _hasAnswered = _hasAnsweredList[_currentQuestionIndex];
-      });
-      if (!_hasAnswered) {
-        _startTimer();
-      } else {
-        _timer?.cancel();
-      }
+    if (quizProvider.currentQuestionIndex < quizProvider.totalQuestions - 1) {
+      quizProvider.moveToNextQuestion();
     } else {
-      _navigateToResult();
+      _navigateToResult(quizProvider);
     }
   }
 
-  void _moveToPreviousQuestion() {
-    if (_currentQuestionIndex > 0) {
-      setState(() {
-        _currentQuestionIndex--;
-        _selectedAnswerIndex = _userAnswers[_currentQuestionIndex];
-        _hasAnswered = _hasAnsweredList[_currentQuestionIndex];
-      });
-      if (!_hasAnswered) {
-        _startTimer();
-      } else {
-        _timer?.cancel();
-      }
-    } else {
-      // Jika di soal pertama, kembali ke SubjectScreen
-      _timer?.cancel();
-      Navigator.pop(context);
+  void _handleSubmit(QuizProvider quizProvider) async {
+    final unansweredCount = quizProvider.userAnswers
+        .where((answer) => answer == null)
+        .length;
+
+    if (unansweredCount > 0) {
+      final shouldSubmit = await showDialog<bool>(
+        context: context,
+        builder: (context) => _buildSubmitDialog(unansweredCount),
+      );
+
+      if (shouldSubmit != true) return;
     }
+
+    if (!quizProvider.hasAnswered && quizProvider.selectedAnswerIndex != null) {
+      quizProvider.submitAnswer();
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    _navigateToResult(quizProvider);
   }
 
-  void _navigateToResult() {
-    _timer?.cancel();
+  Widget _buildSubmitDialog(int unansweredCount) {
+    return AlertDialog(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      title: Text(
+        'Submit Quiz?',
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyLarge!.color,
+        ),
+      ),
+      content: Text(
+        'You have $unansweredCount unanswered question(s). '
+            'Do you want to submit anyway?',
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium!.color,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(
+            'Submit',
+            style: TextStyle(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _navigateToResult(QuizProvider quizProvider) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => ResultScreen(
-          score: _score,
-          totalQuestions: _questions.length,
-          correctAnswers: _correctAnswers,
-          wrongAnswers: _wrongAnswers,
-          subject: widget.subject,
-          userName: widget.userName,
-        ),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+        const ResultScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
       ),
     );
   }
@@ -180,7 +177,7 @@ class _QuestionScreenState extends State<QuestionScreen> with AutomaticKeepAlive
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFFFF0088),
+        backgroundColor: Theme.of(context).primaryColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         duration: const Duration(seconds: 2),
@@ -190,72 +187,140 @@ class _QuestionScreenState extends State<QuestionScreen> with AutomaticKeepAlive
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
-    final size = MediaQuery.of(context).size;
-    final question = _questions[_currentQuestionIndex];
+    return Consumer<QuizProvider>(
+      builder: (context, quizProvider, child) {
+        if (quizProvider.remainingSeconds == 0 && !quizProvider.hasAnswered) {
+          Future.microtask(() {
+            _showSnackBar('Time\'s up!');
+            Future.delayed(const Duration(seconds: 1), () {
+              if (!mounted) return;
+              if (quizProvider.currentQuestionIndex < quizProvider.totalQuestions - 1) {
+                quizProvider.moveToNextQuestion();
+              } else {
+                _navigateToResult(quizProvider);
+              }
+            });
+          });
+        }
 
-    return WillPopScope(
-      onWillPop: () async {
-        _moveToPreviousQuestion();
-        return false;
+        final question = quizProvider.questions[quizProvider.currentQuestionIndex];
+
+        return WillPopScope(
+          onWillPop: () => _onWillPop(quizProvider),
+          child: Scaffold(
+            body: OrientationBuilder(
+              builder: (context, orientation) {
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isLandscape = orientation == Orientation.landscape;
+
+                    return Container(
+                      width: constraints.maxWidth,
+                      height: constraints.maxHeight,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: _getGradientColors(),
+                        ),
+                      ),
+                      child: SafeArea(
+                        child: Column(
+                          children: [
+                            QuizHeaderWidget(
+                              subject: quizProvider.subject,
+                              currentQuestion: quizProvider.currentQuestionIndex + 1,
+                              totalQuestions: quizProvider.totalQuestions,
+                              remainingSeconds: quizProvider.remainingSeconds,
+                              progress: quizProvider.progress,
+                              percentageComplete: quizProvider.percentageComplete,
+                              onBack: () => _onWillPop(quizProvider),
+                              onQuestionTap: (index) =>
+                                  quizProvider.jumpToQuestion(index),
+                              hasAnsweredList: quizProvider.hasAnsweredList,
+                            ),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isLandscape ? 20 : constraints.maxWidth * 0.05,
+                                ),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: isLandscape ? 900 : 600,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      SizedBox(height: isLandscape ? 10 : constraints.maxHeight * 0.02),
+                                      _buildQuestionCard(
+                                        question.question,
+                                        quizProvider.currentQuestionIndex + 1,
+                                        quizProvider.totalQuestions,
+                                        constraints,
+                                        isLandscape,
+                                      ),
+                                      SizedBox(height: isLandscape ? 15 : constraints.maxHeight * 0.03),
+                                      _buildAnswerOptions(
+                                        question,
+                                        quizProvider,
+                                        constraints,
+                                      ),
+                                      SizedBox(height: isLandscape ? 10 : constraints.maxHeight * 0.02),
+                                      _buildActionButtons(
+                                        quizProvider,
+                                        constraints,
+                                        isLandscape,
+                                      ),
+                                      SizedBox(height: isLandscape ? 10 : constraints.maxHeight * 0.02),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        );
       },
-      child: Scaffold(
-        body: Container(
-          width: size.width,
-          height: size.height,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFFFF5EE),
-                Color(0xFFFAE6FF),
-                Color(0xFFF9CDF7),
-                Color(0xFFFFAAE7),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                QuizHeaderWidget(
-                  subject: widget.subject,
-                  currentQuestion: _currentQuestionIndex + 1,
-                  totalQuestions: _questions.length,
-                  remainingSeconds: _remainingSeconds,
-                  onBack: _moveToPreviousQuestion,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
-                    child: Column(
-                      children: [
-                        SizedBox(height: size.height * 0.02),
-                        _buildQuestionCard(question, size),
-                        SizedBox(height: size.height * 0.03),
-                        _buildAnswerOptions(question),
-                        SizedBox(height: size.height * 0.02),
-                        _buildNextButton(size),
-                        SizedBox(height: size.height * 0.02),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildQuestionCard(Question question, Size size) {
+  List<Color> _getGradientColors() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (isDark) {
+      return const [
+        Color(0xFF2A1A2A),
+        Color(0xFF3A2A3A),
+        Color(0xFF4A2A4A),
+        Color(0xFF5A2A5A),
+      ];
+    } else {
+      return const [
+        Color(0xFFFFF5EE),
+        Color(0xFFFAE6FF),
+        Color(0xFFF9CDF7),
+        Color(0xFFFFAAE7),
+      ];
+    }
+  }
+
+  Widget _buildQuestionCard(
+      String questionText,
+      int questionNumber,
+      int totalQuestions,
+      BoxConstraints constraints,
+      bool isLandscape,
+      ) {
     return Container(
       width: double.infinity,
-      constraints: BoxConstraints(maxWidth: size.width * 0.9),
-      padding: EdgeInsets.all(size.width * 0.05),
+      padding: EdgeInsets.all(isLandscape ? 15 : constraints.maxWidth * 0.04),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(10),
         boxShadow: const [
           BoxShadow(
@@ -265,36 +330,29 @@ class _QuestionScreenState extends State<QuestionScreen> with AutomaticKeepAlive
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: size.width * 0.1,
-            height: size.width * 0.1,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            decoration: ShapeDecoration(
-              color: const Color(0xFF9B34D6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '${_currentQuestionIndex + 1}',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: size.width * 0.045,
-                fontWeight: FontWeight.w700,
-              ),
+          // Keterangan posisi soal
+          Text(
+            'Question $questionNumber of $totalQuestions',
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+              fontSize: isLandscape
+                  ? 14
+                  : (constraints.maxWidth * 0.04).clamp(14.0, 16.0),
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
-          SizedBox(width: size.width * 0.025),
-          Expanded(
-            child: Text(
-              question.question,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: size.width * 0.05,
-                fontWeight: FontWeight.w700,
-              ),
+          SizedBox(height: isLandscape ? 8 : constraints.maxHeight * 0.01),
+
+          // Teks pertanyaan
+          Text(
+            questionText,
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+              fontSize: isLandscape
+                  ? 15
+                  : (constraints.maxWidth * 0.045).clamp(16.0, 20.0),
             ),
           ),
         ],
@@ -302,68 +360,103 @@ class _QuestionScreenState extends State<QuestionScreen> with AutomaticKeepAlive
     );
   }
 
-  Widget _buildAnswerOptions(Question question) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
-      child: Column(
-        children: List.generate(
-          question.options.length,
-          (index) {
-            bool? isCorrect;
-            if (_hasAnswered) {
-              isCorrect = index == question.correctAnswerIndex;
-            }
-            
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: AnswerOptionWidget(
-                label: _optionLabels[index],
-                text: question.options[index],
-                isSelected: _selectedAnswerIndex == index,
-                isCorrect: isCorrect,
-                onTap: () => _selectAnswer(index),
-              ),
-            );
-          },
-        ),
+  Widget _buildAnswerOptions(dynamic question, QuizProvider quizProvider, BoxConstraints constraints) {
+    return Column(
+      children: List.generate(
+        question.options.length,
+            (index) {
+          // Tidak menampilkan status benar/salah saat user pindah ke soal lain
+          bool? isCorrect;
+
+          return OptionButtonWidget(
+            label: _optionLabels[index],
+            text: question.options[index],
+            isSelected: quizProvider.selectedAnswerIndex == index,
+            isCorrect: isCorrect,
+            onTap: () => quizProvider.selectAnswer(index),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildNextButton(Size size) {
-    final isLastQuestion = _currentQuestionIndex == _questions.length - 1;
-    
-    return GestureDetector(
-      onTap: _nextQuestion,
-      child: Container(
-        width: double.infinity,
-        constraints: BoxConstraints(maxWidth: size.width * 0.9),
-        height: size.height * 0.075,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFF00E5),
-          borderRadius: BorderRadius.circular(50),
-        ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              isLastQuestion ? 'SEE RESULT' : 'NEXT QUESTION',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: size.width * 0.05,
-                fontWeight: FontWeight.w500,
+  Widget _buildActionButtons(QuizProvider quizProvider, BoxConstraints constraints, bool isLandscape) {
+    final isLastQuestion = quizProvider.currentQuestionIndex == quizProvider.totalQuestions - 1;
+
+    // Hanya tampilkan tombol submit di soal terakhir
+    if (isLastQuestion) {
+      return Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _handleSubmit(quizProvider),
+              child: Container(
+                height: isLandscape ? 50 : (constraints.maxHeight * 0.075).clamp(50.0, 70.0),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      color: Colors.white,
+                      size: isLandscape ? 20 : (constraints.maxWidth * 0.05).clamp(20.0, 24.0),
+                    ),
+                    SizedBox(width: constraints.maxWidth * 0.02),
+                    Text(
+                      'SUBMIT QUIZ',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isLandscape ? 16 : (constraints.maxWidth * 0.04).clamp(16.0, 20.0),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            SizedBox(width: size.width * 0.025),
-            Icon(
-              isLastQuestion ? Icons.emoji_events : Icons.arrow_forward,
-              color: Colors.white,
-              size: size.width * 0.05,
+          ),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => _handleNextQuestion(quizProvider),
+            child: Container(
+              height: isLandscape ? 50 : (constraints.maxHeight * 0.075).clamp(50.0, 70.0),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: BorderRadius.circular(50),
+              ),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'NEXT QUESTION',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isLandscape ? 16 : (constraints.maxWidth * 0.04).clamp(16.0, 20.0),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(width: constraints.maxWidth * 0.02),
+                  Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: isLandscape ? 20 : (constraints.maxWidth * 0.05).clamp(20.0, 24.0),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
