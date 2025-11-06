@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class AnswerOptionWidget extends StatelessWidget {
+class OptionButtonWidget extends StatelessWidget {
   final String label;
   final String text;
   final bool isSelected;
   final bool? isCorrect;
   final VoidCallback onTap;
 
-  const AnswerOptionWidget({
+  const OptionButtonWidget({
     super.key,
     required this.label,
     required this.text,
@@ -18,78 +18,103 @@ class AnswerOptionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color backgroundColor = Colors.white.withValues(alpha: 0.70);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    Color backgroundColor = isDark 
+        ? Theme.of(context).colorScheme.surface.withValues(alpha: 0.7)
+        : Colors.white.withValues(alpha:0.70);
     Color borderColor = const Color(0xFFFFAAE7);
     Color labelBgColor = const Color(0x3FFFAAE7);
-    Color textColor = Colors.black;
+    Color textColor = Theme.of(context).textTheme.bodyLarge!.color!;
 
     if (isCorrect != null) {
       if (isCorrect!) {
         backgroundColor = const Color(0xFF93FFAE);
         borderColor = const Color(0xFF2ECC71);
         labelBgColor = Colors.white;
-        textColor = Colors.white;
+        textColor = Colors.black;
       } else if (isSelected) {
         backgroundColor = const Color(0xFFFF93C7);
         borderColor = const Color(0xFFE74C3C);
         labelBgColor = Colors.white;
-        textColor = Colors.white;
+        textColor = Colors.black;
       }
     } else if (isSelected) {
-      backgroundColor = const Color(0xFFFF0088).withValues(alpha: 0.1);
+      backgroundColor = const Color(0xFFFF0088).withValues(alpha:0.1);
       borderColor = const Color(0xFFFF0088);
-      labelBgColor = const Color(0xFFFF0088).withValues(alpha: 0.3);
+      labelBgColor = const Color(0xFFFF0088).withValues(alpha:0.3);
     }
 
-    return GestureDetector(
-      onTap: isCorrect == null ? onTap : null,
-      child: Container(
-        width: double.infinity,
-        height: 60,
-        padding: const EdgeInsets.all(10),
-        decoration: ShapeDecoration(
-          color: backgroundColor,
-          shape: RoundedRectangleBorder(
-            side: BorderSide(width: 2, color: borderColor),
-            borderRadius: BorderRadius.circular(50),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = MediaQuery.of(context).size;
+        final buttonHeight = (size.height * 0.075).clamp(50.0, 70.0);
+        final fontSize = (size.width * 0.045).clamp(16.0, 20.0);
+        
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: constraints.maxWidth,
+          height: buttonHeight,
+          margin: EdgeInsets.only(bottom: size.height * 0.015),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: isCorrect == null ? onTap : null,
+              borderRadius: BorderRadius.circular(50),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: size.width * 0.03,
+                  vertical: size.height * 0.01,
+                ),
+                decoration: ShapeDecoration(
+                  color: backgroundColor,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(width: 2, color: borderColor),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: buttonHeight * 0.5,
+                      height: buttonHeight * 0.5,
+                      decoration: ShapeDecoration(
+                        color: labelBgColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: size.width * 0.03),
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: fontSize * 0.9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: ShapeDecoration(
-                color: labelBgColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(100),
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
