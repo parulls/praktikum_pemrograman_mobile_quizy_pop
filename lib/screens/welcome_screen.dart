@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:praktikum_pemrograman_mobile_quizy_pop/screens/subject_screen.dart';
+import '../widgets/theme_toggle_widget.dart';
+import '../utils/app_theme.dart';
+import 'subject_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -8,21 +10,36 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
   final _nameController = TextEditingController();
   bool _visible = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+    
     Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) setState(() => _visible = true);
+      if (mounted) {
+        setState(() => _visible = true);
+        _animationController.forward();
+      }
     });
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -40,8 +57,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => SubjectScreen(userName: name),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                SubjectScreen(userName: name),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.easeInOut;
+              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              return SlideTransition(
+                position: animation.drive(tween),
+                child: child,
+              );
+            },
           ),
         );
       }
@@ -70,45 +98,68 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final isLandscape = size.width > size.height;
 
     return Scaffold(
       body: Container(
         width: size.width,
         height: size.height,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFEEEE),
-              Color(0xFFFFEFD2),
-              Color(0xFFF9CDF7),
-              Color(0xFFFFAAE7),
-            ],
+            colors: AppTheme.getGradientColors(context),
           ),
         ),
         child: SafeArea(
-          child: AnimatedOpacity(
-            opacity: _visible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 1000),
-            child: Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/images/logo.png', width: size.width),
-                    SizedBox(height: size.height * 0.01),
-                    _buildWelcomeCard(),
-                    SizedBox(height: size.height * 0.06),
-                    _buildNameInput(),
-                    SizedBox(height: size.height * 0.03),
-                    _buildStartButton(),
-                    SizedBox(height: size.height * 0.05),
-                    _buildBottomIndicator(),
-                  ],
-                ),
-              ),
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Center(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: constraints.maxWidth * 0.1,
+                      vertical: constraints.maxHeight * 0.02,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: isLandscape ? 600 : 500,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: const ThemeToggleWidget(),
+                          ),
+                          if (!isLandscape) ...[
+                            Image.asset(
+                              'assets/images/logo.png',
+                              width: constraints.maxWidth * 0.6,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.quiz,
+                                  size: constraints.maxWidth * 0.3,
+                                  color: Theme.of(context).primaryColor,
+                                );
+                              },
+                            ),
+                            SizedBox(height: constraints.maxHeight * 0.02),
+                          ],
+                          _buildWelcomeCard(constraints),
+                          SizedBox(height: constraints.maxHeight * 0.04),
+                          _buildNameInput(constraints),
+                          SizedBox(height: constraints.maxHeight * 0.03),
+                          _buildStartButton(constraints),
+                          SizedBox(height: constraints.maxHeight * 0.03),
+                          _buildBottomIndicator(),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -116,20 +167,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 
-  Widget _buildWelcomeCard() {
+  Widget _buildWelcomeCard(BoxConstraints constraints) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(constraints.maxWidth * 0.05),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(40),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.20),
+          color: Theme.of(context).colorScheme.surface.withOpacity(0.20),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: .05),
+            color: Colors.black.withOpacity(.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -140,42 +191,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         children: [
           Text.rich(
             TextSpan(
-              children: const [
+              children: [
                 TextSpan(
                   text: 'Welcome to ',
-                  style: TextStyle(
-                    color: Color(0xFF191919),
-                    fontWeight: FontWeight.w700,
+                  style: Theme.of(context).textTheme.displayMedium!.copyWith(
+                    fontSize: constraints.maxWidth * 0.065,
                   ),
                 ),
                 TextSpan(
                   text: 'QuizzyPop',
                   style: TextStyle(
-                    color: Color(0xFFFF0088),
+                    color: Theme.of(context).primaryColor,
+                    fontSize: constraints.maxWidth * 0.065,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 TextSpan(
                   text: ' Academy!',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w700,
+                  style: Theme.of(context).textTheme.displayMedium!.copyWith(
+                    fontSize: constraints.maxWidth * 0.065,
                   ),
                 ),
               ],
             ),
-            style: const TextStyle(fontSize: 28, height: 1.1),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 15),
-          const Text(
+          SizedBox(height: constraints.maxHeight * 0.02),
+          Text(
             'Test Your Knowledge & Shine!',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 18,
-              color: Color(0xFFA6A6A6),
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.72,
+            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+              fontSize: constraints.maxWidth * 0.045,
             ),
           ),
         ],
@@ -183,69 +229,77 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 
-  Widget _buildNameInput() {
-  return Container(
-    height: 60,
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.60),
-      borderRadius: BorderRadius.circular(50),
-      border: Border.all(color: const Color(0xFFFF0088)),
-    ),
-    child: Stack(
-      alignment: Alignment.center,
-      children: [
-        TextField(
-          controller: _nameController,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 20,
-            color: Color(0xFFFF0088),
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.8,
-          ),
-          decoration: InputDecoration(
-            hintText: 'Enter Your Name',
-            hintStyle: TextStyle(
-              color: const Color(0xFFFF0088).withValues(alpha: 0.7),
+  Widget _buildNameInput(BoxConstraints constraints) {
+    return Container(
+      height: constraints.maxHeight * 0.08,
+      constraints: BoxConstraints(
+        minHeight: 50,
+        maxHeight: 70,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.60),
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: Theme.of(context).primaryColor),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          TextField(
+            controller: _nameController,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: constraints.maxWidth * 0.045,
+              color: Theme.of(context).primaryColor,
               fontWeight: FontWeight.w500,
             ),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 15),
+            decoration: InputDecoration(
+              hintText: 'Enter Your Name',
+              hintStyle: TextStyle(
+                color: Theme.of(context).primaryColor.withOpacity(0.7),
+                fontWeight: FontWeight.w500,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                vertical: constraints.maxHeight * 0.02,
+              ),
+            ),
+            onSubmitted: (_) => _startQuiz(),
           ),
-        ),
-
-        const Positioned(
-          left: 25,
-          child: Icon(
-            Icons.person,
-            color: Color(0xFFFF0088),
-            size: 22,
+          Positioned(
+            left: constraints.maxWidth * 0.06,
+            child: Icon(
+              Icons.person,
+              color: Theme.of(context).primaryColor,
+              size: constraints.maxWidth * 0.05,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
-  Widget _buildStartButton() {
+  Widget _buildStartButton(BoxConstraints constraints) {
     return GestureDetector(
       onTap: _startQuiz,
       child: Container(
         width: double.infinity,
-        height: 60,
+        height: constraints.maxHeight * 0.08,
+        constraints: BoxConstraints(
+          minHeight: 50,
+          maxHeight: 70,
+        ),
         decoration: BoxDecoration(
-          color: const Color(0xFFFF0088),
+          color: Theme.of(context).primaryColor,
           borderRadius: BorderRadius.circular(50),
-          border: Border.all(color: Colors.white),
+          border: Border.all(color: Theme.of(context).colorScheme.surface),
         ),
         alignment: Alignment.center,
-        child: const Text(
+        child: Text(
           'Start Quiz',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 20,
+            fontSize: constraints.maxWidth * 0.045,
             fontWeight: FontWeight.w500,
-            letterSpacing: -0.8,
           ),
         ),
       ),
@@ -257,7 +311,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       width: 135,
       height: 5,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(100),
       ),
     );
