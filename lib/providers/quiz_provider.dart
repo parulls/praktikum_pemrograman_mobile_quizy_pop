@@ -18,7 +18,6 @@ class QuizProvider with ChangeNotifier {
   String _subject = '';
   String _userName = '';
 
-  // Getters
   List<Question> get questions => _questions;
   int get currentQuestionIndex => _currentQuestionIndex;
   int get score => _score;
@@ -78,14 +77,12 @@ class QuizProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Diperbaiki: selectAnswer sekarang langsung menandai sebagai "sudah dijawab"
   void selectAnswer(int index) {
     if (_hasAnswered) return;
 
     _selectedAnswerIndex = index;
     _userAnswers[_currentQuestionIndex] = index;
 
-    // Tandai langsung sebagai sudah dijawab
     _hasAnsweredList[_currentQuestionIndex] = true;
 
     notifyListeners();
@@ -96,7 +93,6 @@ class QuizProvider with ChangeNotifier {
       return false;
     }
 
-    // Hanya hitung skor jika belum pernah disubmit
     if (!_hasAnswered) {
       _hasAnswered = true;
       _hasAnsweredList[_currentQuestionIndex] = true;

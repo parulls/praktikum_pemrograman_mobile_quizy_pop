@@ -22,13 +22,15 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
   Future<bool> _onWillPop(QuizProvider quizProvider) async {
     if (quizProvider.currentQuestionIndex == 0) {
+      if (!mounted) return false;
+      
       final shouldExit = await showDialog<bool>(
         context: context,
         builder: (context) => _buildExitDialog(),
       );
 
-      if (shouldExit == true) {
-        Navigator.of(context).pop();
+      if (shouldExit == true && mounted) {
+        return true;
       }
       return false;
     } else {
@@ -38,8 +40,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
   }
 
   Widget _buildExitDialog() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return AlertDialog(
       backgroundColor: Theme.of(context).colorScheme.surface,
       title: Text(
@@ -56,7 +56,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: () {
+            if (mounted) {
+              Navigator.of(context).pop(false);
+            }
+          },
           child: Text(
             'Cancel',
             style: TextStyle(
@@ -65,7 +69,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
           ),
         ),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
+          onPressed: () {
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
+          },
           style: TextButton.styleFrom(
             foregroundColor: Colors.red,
           ),
@@ -98,6 +106,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
         .length;
 
     if (unansweredCount > 0) {
+      if (!mounted) return;
+      
       final shouldSubmit = await showDialog<bool>(
         context: context,
         builder: (context) => _buildSubmitDialog(unansweredCount),
@@ -111,7 +121,9 @@ class _QuestionScreenState extends State<QuestionScreen> {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    _navigateToResult(quizProvider);
+    if (mounted) {
+      _navigateToResult(quizProvider);
+    }
   }
 
   Widget _buildSubmitDialog(int unansweredCount) {
@@ -132,7 +144,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: () {
+            if (mounted) {
+              Navigator.of(context).pop(false);
+            }
+          },
           child: Text(
             'Cancel',
             style: TextStyle(
@@ -141,7 +157,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
           ),
         ),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
+          onPressed: () {
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
+          },
           child: Text(
             'Submit',
             style: TextStyle(
@@ -154,6 +174,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
   }
 
   void _navigateToResult(QuizProvider quizProvider) {
+    if (!mounted) return;
+    
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
@@ -174,6 +196,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
   }
 
   void _showSnackBar(String message) {
+    if (!mounted) return;
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -191,6 +215,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
       builder: (context, quizProvider, child) {
         if (quizProvider.remainingSeconds == 0 && !quizProvider.hasAnswered) {
           Future.microtask(() {
+            if (!mounted) return;
             _showSnackBar('Time\'s up!');
             Future.delayed(const Duration(seconds: 1), () {
               if (!mounted) return;
@@ -205,8 +230,15 @@ class _QuestionScreenState extends State<QuestionScreen> {
 
         final question = quizProvider.questions[quizProvider.currentQuestionIndex];
 
-        return WillPopScope(
-          onWillPop: () => _onWillPop(quizProvider),
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) return;
+            final shouldPop = await _onWillPop(quizProvider);
+            if (shouldPop && mounted) {
+              Navigator.of(context).pop();
+            }
+          },
           child: Scaffold(
             body: OrientationBuilder(
               builder: (context, orientation) {
@@ -234,7 +266,12 @@ class _QuestionScreenState extends State<QuestionScreen> {
                               remainingSeconds: quizProvider.remainingSeconds,
                               progress: quizProvider.progress,
                               percentageComplete: quizProvider.percentageComplete,
-                              onBack: () => _onWillPop(quizProvider),
+                              onBack: () async {
+                                final shouldPop = await _onWillPop(quizProvider);
+                                if (shouldPop && mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
                               onQuestionTap: (index) =>
                                   quizProvider.jumpToQuestion(index),
                               hasAnsweredList: quizProvider.hasAnsweredList,
@@ -333,7 +370,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Keterangan posisi soal
           Text(
             'Question $questionNumber of $totalQuestions',
             style: Theme.of(context).textTheme.bodySmall!.copyWith(
@@ -345,8 +381,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
             ),
           ),
           SizedBox(height: isLandscape ? 8 : constraints.maxHeight * 0.01),
-
-          // Teks pertanyaan
           Text(
             questionText,
             style: Theme.of(context).textTheme.bodyLarge!.copyWith(
@@ -365,7 +399,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
       children: List.generate(
         question.options.length,
             (index) {
-          // Tidak menampilkan status benar/salah saat user pindah ke soal lain
           bool? isCorrect;
 
           return OptionButtonWidget(
@@ -383,7 +416,6 @@ class _QuestionScreenState extends State<QuestionScreen> {
   Widget _buildActionButtons(QuizProvider quizProvider, BoxConstraints constraints, bool isLandscape) {
     final isLastQuestion = quizProvider.currentQuestionIndex == quizProvider.totalQuestions - 1;
 
-    // Hanya tampilkan tombol submit di soal terakhir
     if (isLastQuestion) {
       return Row(
         children: [
