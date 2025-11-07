@@ -34,7 +34,8 @@ class QuizProvider with ChangeNotifier {
   String get userName => _userName;
   int get totalQuestions => _questions.length;
   double get progress => (_currentQuestionIndex + 1) / _questions.length;
-  double get percentageComplete => ((_currentQuestionIndex + 1) / _questions.length) * 100;
+  double get percentageComplete =>
+      ((_currentQuestionIndex + 1) / _questions.length) * 100;
 
   void initializeQuiz(String subject, String userName) {
     _subject = subject;
@@ -68,17 +69,25 @@ class QuizProvider with ChangeNotifier {
 
   void _timeUp() {
     if (_hasAnswered) return;
-    
+
     _hasAnswered = true;
     _hasAnsweredList[_currentQuestionIndex] = true;
+    _userAnswers[_currentQuestionIndex] = null;
     _wrongAnswers++;
     _timeSpentList[_currentQuestionIndex] = 30;
     notifyListeners();
   }
 
+  // Diperbaiki: selectAnswer sekarang langsung menandai sebagai "sudah dijawab"
   void selectAnswer(int index) {
     if (_hasAnswered) return;
+
     _selectedAnswerIndex = index;
+    _userAnswers[_currentQuestionIndex] = index;
+
+    // Tandai langsung sebagai sudah dijawab
+    _hasAnsweredList[_currentQuestionIndex] = true;
+
     notifyListeners();
   }
 
@@ -87,18 +96,22 @@ class QuizProvider with ChangeNotifier {
       return false;
     }
 
-    _hasAnswered = true;
-    _hasAnsweredList[_currentQuestionIndex] = true;
-    _userAnswers[_currentQuestionIndex] = _selectedAnswerIndex;
-    _timeSpentList[_currentQuestionIndex] = 30 - _remainingSeconds;
-    
-    if (_selectedAnswerIndex == _questions[_currentQuestionIndex].correctAnswerIndex) {
-      _score += 10;
-      _correctAnswers++;
-    } else {
-      _wrongAnswers++;
+    // Hanya hitung skor jika belum pernah disubmit
+    if (!_hasAnswered) {
+      _hasAnswered = true;
+      _hasAnsweredList[_currentQuestionIndex] = true;
+      _userAnswers[_currentQuestionIndex] = _selectedAnswerIndex;
+      _timeSpentList[_currentQuestionIndex] = 30 - _remainingSeconds;
+
+      if (_selectedAnswerIndex ==
+          _questions[_currentQuestionIndex].correctAnswerIndex) {
+        _score += 10;
+        _correctAnswers++;
+      } else {
+        _wrongAnswers++;
+      }
     }
-    
+
     notifyListeners();
     return true;
   }
@@ -108,7 +121,7 @@ class QuizProvider with ChangeNotifier {
       _currentQuestionIndex++;
       _selectedAnswerIndex = _userAnswers[_currentQuestionIndex];
       _hasAnswered = _hasAnsweredList[_currentQuestionIndex];
-      
+
       if (!_hasAnswered) {
         _startTimer();
       } else {
@@ -123,7 +136,7 @@ class QuizProvider with ChangeNotifier {
       _currentQuestionIndex--;
       _selectedAnswerIndex = _userAnswers[_currentQuestionIndex];
       _hasAnswered = _hasAnsweredList[_currentQuestionIndex];
-      
+
       if (!_hasAnswered) {
         _startTimer();
       } else {
@@ -138,7 +151,7 @@ class QuizProvider with ChangeNotifier {
       _currentQuestionIndex = index;
       _selectedAnswerIndex = _userAnswers[_currentQuestionIndex];
       _hasAnswered = _hasAnsweredList[_currentQuestionIndex];
-      
+
       if (!_hasAnswered) {
         _startTimer();
       } else {
@@ -149,9 +162,11 @@ class QuizProvider with ChangeNotifier {
   }
 
   double getAverageTimePerQuestion() {
-    int answeredQuestions = _hasAnsweredList.where((answered) => answered).length;
+    int answeredQuestions = _hasAnsweredList
+        .where((answered) => answered)
+        .length;
     if (answeredQuestions == 0) return 0;
-    
+
     int totalTime = _timeSpentList.reduce((a, b) => a + b);
     return totalTime / answeredQuestions;
   }
@@ -165,7 +180,7 @@ class QuizProvider with ChangeNotifier {
   String getBadge() {
     double accuracy = getAccuracyPercentage();
     double avgTime = getAverageTimePerQuestion();
-    
+
     if (accuracy == 100) {
       return 'Perfect Score! 🏆';
     } else if (accuracy >= 80 && avgTime < 15) {
