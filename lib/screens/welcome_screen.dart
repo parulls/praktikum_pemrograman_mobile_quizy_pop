@@ -175,12 +175,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(40),
         border: Border.all(
-          color: Theme.of(context).colorScheme.surface.withOpacity(0.20),
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.20),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -237,7 +237,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
         maxHeight: 70,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.60),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.60),
         borderRadius: BorderRadius.circular(50),
         border: Border.all(color: Theme.of(context).primaryColor),
       ),
@@ -255,7 +255,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
             decoration: InputDecoration(
               hintText: 'Enter Your Name',
               hintStyle: TextStyle(
-                color: Theme.of(context).primaryColor.withOpacity(0.7),
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w500,
               ),
               border: InputBorder.none,

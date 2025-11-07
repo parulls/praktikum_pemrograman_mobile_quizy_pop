@@ -208,13 +208,11 @@ class AppTheme {
     );
   }
 
-  // Helper method to get gradient colors based on theme
   static List<Color> getGradientColors(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark ? darkGradient : lightGradient;
   }
 
-  // Helper method to get adaptive colors
   static Color getAdaptiveColor(BuildContext context, Color lightColor, Color darkColor) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark ? darkColor : lightColor;

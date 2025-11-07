@@ -46,8 +46,10 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Consumer<QuizProvider>(
       builder: (context, quizProvider, child) {
-        return WillPopScope(
-          onWillPop: () async => false,
+        return PopScope(
+          canPop: false, 
+          onPopInvokedWithResult: (didPop, result) {
+          },
           child: Scaffold(
             body: OrientationBuilder(
               builder: (context, orientation) {
@@ -190,7 +192,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         gradient: LinearGradient(
           colors: [
             Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withOpacity(0.8),
+            Theme.of(context).primaryColor.withValues(alpha: 0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(15),
@@ -299,7 +301,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     return Container(
       padding: EdgeInsets.symmetric(vertical: constraints.maxHeight * 0.025),
       decoration: BoxDecoration(
-        color: isDark ? textColor.withOpacity(0.2) : bgColor,
+        color: isDark ? textColor.withValues(alpha: 0.2) : bgColor,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -351,6 +353,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   Widget _buildReviewButton(QuizProvider quizProvider, BoxConstraints constraints) {
     return GestureDetector(
       onTap: () {
+        if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -392,6 +395,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   Widget _buildPlayAgainButton(QuizProvider quizProvider, BoxConstraints constraints) {
     return GestureDetector(
       onTap: () {
+        if (!mounted) return;
         quizProvider.resetQuiz();
         Navigator.pop(context);
       },
@@ -429,6 +433,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   Widget _buildHomeButton(BoxConstraints constraints) {
     return GestureDetector(
       onTap: () {
+        if (!mounted) return;
         Navigator.popUntil(context, (route) => route.isFirst);
       },
       child: Container(

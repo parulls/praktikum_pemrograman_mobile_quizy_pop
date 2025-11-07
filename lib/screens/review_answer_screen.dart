@@ -100,7 +100,6 @@ class ReviewAnswerScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Question header
           Row(
             children: [
               Container(
